@@ -13,10 +13,13 @@ Create a `.claude/env` file with your Jira credentials:
 
 ```
 JIRA_BASE_URL=https://your-domain.atlassian.net
-JIRA_PAT=your-personal-access-token
+JIRA_USER_EMAIL=your-email@example.com
+JIRA_API_TOKEN=your-api-token
 ```
 
-The PAT requires appropriate Jira permissions for the operations you intend to perform.
+Generate an API token at: https://id.atlassian.com/manage-profile/security/api-tokens
+
+The token requires appropriate Jira permissions for the operations you intend to perform.
 
 ## Available Operations
 
