@@ -17,6 +17,7 @@ Example usage:
 
 from __future__ import annotations
 
+import base64
 from pathlib import Path
 from typing import Any
 
@@ -96,7 +97,7 @@ def _find_env_file(start_path: Path | None = None) -> Path:
     raise JiraConfigError(
         f"Configuration file .claude/env not found. "
         f"Searched from {start_path} to filesystem root. "
-        f"Please create .claude/env with JIRA_BASE_URL and JIRA_PAT."
+        f"Please create .claude/env with JIRA_BASE_URL, JIRA_USER_EMAIL, and JIRA_API_TOKEN."
     )
 
 
@@ -174,7 +175,7 @@ class JiraClient:
     """
 
     API_VERSION = "3"
-    REQUIRED_VARS = ("JIRA_BASE_URL", "JIRA_PAT")
+    REQUIRED_VARS = ("JIRA_BASE_URL", "JIRA_USER_EMAIL", "JIRA_API_TOKEN")
 
     def __init__(self, config_start_path: Path | None = None) -> None:
         """Initialize the Jira client.
@@ -204,16 +205,21 @@ class JiraClient:
 
         # Store configuration
         self._jira_base_url = config["JIRA_BASE_URL"].rstrip("/")
-        self._jira_pat = config["JIRA_PAT"]
+        self._jira_user_email = config["JIRA_USER_EMAIL"]
+        self._jira_api_token = config["JIRA_API_TOKEN"]
 
         # Construct the API base URL
         self.base_url = f"{self._jira_base_url}/rest/api/{self.API_VERSION}/"
+
+        # Build Basic Auth header (email:api_token base64 encoded)
+        credentials = f"{self._jira_user_email}:{self._jira_api_token}"
+        encoded_credentials = base64.b64encode(credentials.encode("utf-8")).decode("utf-8")
 
         # Set up the session with authentication
         self.session = requests.Session()
         self.session.headers.update(
             {
-                "Authorization": f"Bearer {self._jira_pat}",
+                "Authorization": f"Basic {encoded_credentials}",
                 "Content-Type": "application/json",
                 "Accept": "application/json",
             }

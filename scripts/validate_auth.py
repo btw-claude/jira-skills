@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Validate Jira PAT authentication configuration.
+"""Validate Jira API authentication configuration.
 
 This script checks that the .claude/env file exists with the required
-configuration and tests that the PAT token is valid by making a test
+configuration and tests that the API token is valid by making a test
 API call.
 
 Exit Codes:
@@ -53,8 +53,10 @@ def validate_configuration() -> tuple[bool, str, dict[str, str] | None]:
     missing_vars = []
     if not config.get("JIRA_BASE_URL"):
         missing_vars.append("JIRA_BASE_URL")
-    if not config.get("JIRA_PAT"):
-        missing_vars.append("JIRA_PAT")
+    if not config.get("JIRA_USER_EMAIL"):
+        missing_vars.append("JIRA_USER_EMAIL")
+    if not config.get("JIRA_API_TOKEN"):
+        missing_vars.append("JIRA_API_TOKEN")
 
     if missing_vars:
         return (
@@ -82,9 +84,9 @@ def test_authentication(client: JiraClient) -> tuple[bool, str, dict | None]:
 
     except JiraAPIError as e:
         if e.status_code == 401:
-            return (False, f"Invalid or expired PAT token\n  HTTP 401: {e.response_body}", None)
+            return (False, f"Invalid or expired API token\n  HTTP 401: {e.response_body}", None)
         elif e.status_code == 403:
-            return (False, f"PAT lacks required permissions\n  HTTP 403: {e.response_body}", None)
+            return (False, f"API token lacks required permissions\n  HTTP 403: {e.response_body}", None)
         else:
             return (False, f"API request failed\n  HTTP {e.status_code}: {e.response_body}", None)
 
@@ -106,16 +108,17 @@ def main() -> int:
         print(f"  {config_message}")
         return EXIT_CONFIG_ERROR
 
-    # Mask the PAT for display (show first 8 and last 4 chars)
-    pat = config["JIRA_PAT"]
-    if len(pat) > 16:
-        masked_pat = f"{pat[:8]}...{pat[-4:]}"
+    # Mask the API token for display (show first 8 and last 4 chars)
+    api_token = config["JIRA_API_TOKEN"]
+    if len(api_token) > 16:
+        masked_token = f"{api_token[:8]}...{api_token[-4:]}"
     else:
-        masked_pat = "****"
+        masked_token = "****"
 
     print("Configuration OK:")
     print(f"  JIRA_BASE_URL: {config['JIRA_BASE_URL']}")
-    print(f"  JIRA_PAT: {masked_pat}")
+    print(f"  JIRA_USER_EMAIL: {config['JIRA_USER_EMAIL']}")
+    print(f"  JIRA_API_TOKEN: {masked_token}")
     print(f"  Config file: {config_message}")
     print()
 
