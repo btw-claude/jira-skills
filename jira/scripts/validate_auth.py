@@ -153,6 +153,8 @@ def _mask_token(token: str) -> str:
     Returns:
         Masked token string
     """
+    if not token:
+        return "(empty)"
     if len(token) > 16:
         return f"{token[:8]}...{token[-4:]}"
     return "****"
