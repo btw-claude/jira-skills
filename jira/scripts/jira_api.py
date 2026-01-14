@@ -24,10 +24,14 @@ Example usage:
 from __future__ import annotations
 
 import base64
+import logging
 from pathlib import Path
 from typing import Any
 
 import requests
+
+# Set up module logger
+logger = logging.getLogger(__name__)
 
 
 class JiraAPIError(Exception):
@@ -253,21 +257,22 @@ class JiraClient:
         # Construct the API base URL
         self.base_url = f"{self._jira_base_url}/rest/api/{self.API_VERSION}/"
 
-        # Set up the session
+        # Set up the session with common headers
         self.session = requests.Session()
+        self.session.headers.update(
+            {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            }
+        )
 
         # Configure authentication based on available credentials
         # PAT takes precedence if both are configured
         if has_pat:
             self.auth_method = "pat"
             self._jira_pat = config[self.PAT_AUTH_VAR]
-            self.session.headers.update(
-                {
-                    "Authorization": f"Bearer {self._jira_pat}",
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
-                }
-            )
+            self.session.headers["Authorization"] = f"Bearer {self._jira_pat}"
+            logger.debug("Using PAT (Personal Access Token) authentication")
         else:
             self.auth_method = "basic"
             self._jira_user_email = config["JIRA_USER_EMAIL"]
@@ -275,13 +280,8 @@ class JiraClient:
             # Build Basic Auth header (email:api_token base64 encoded)
             credentials = f"{self._jira_user_email}:{self._jira_api_token}"
             encoded_credentials = base64.b64encode(credentials.encode("utf-8")).decode("utf-8")
-            self.session.headers.update(
-                {
-                    "Authorization": f"Basic {encoded_credentials}",
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
-                }
-            )
+            self.session.headers["Authorization"] = f"Basic {encoded_credentials}"
+            logger.debug("Using Basic Auth authentication (email: %s)", self._jira_user_email)
 
     def _build_url(self, endpoint: str) -> str:
         """Build the full URL for an API endpoint.
