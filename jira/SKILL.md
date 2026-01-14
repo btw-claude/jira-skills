@@ -9,7 +9,9 @@ This skill provides comprehensive Jira integration through the `mcp__jira-agent`
 
 ## Configuration
 
-Create a `.claude/env` file with your Jira credentials:
+Create a `.claude/env` file with your Jira credentials. This skill supports two authentication methods:
+
+### Option 1: Email + API Token (Recommended for Atlassian Cloud)
 
 ```
 JIRA_BASE_URL=https://your-domain.atlassian.net
@@ -19,7 +21,27 @@ JIRA_API_TOKEN=your-api-token
 
 Generate an API token at: https://id.atlassian.com/manage-profile/security/api-tokens
 
-The token requires appropriate Jira permissions for the operations you intend to perform.
+### Option 2: Personal Access Token (PAT) (Recommended for Jira Data Center/Server)
+
+```
+JIRA_BASE_URL=https://your-jira-server.com
+JIRA_PAT=your-personal-access-token
+```
+
+Generate a PAT in your Jira profile settings under "Personal Access Tokens".
+
+### When to Use Each Method
+
+| Authentication Method | Best For | Notes |
+|----------------------|----------|-------|
+| Email + API Token | Atlassian Cloud (*.atlassian.net) | Standard method for cloud instances |
+| Personal Access Token (PAT) | Jira Data Center / Server | Required for self-hosted instances; also works with Cloud |
+
+### Backward Compatibility
+
+Both authentication methods are fully supported. If both `JIRA_PAT` and `JIRA_USER_EMAIL`/`JIRA_API_TOKEN` are configured, PAT authentication takes precedence. Existing configurations using email + API token will continue to work without modification.
+
+The token/PAT requires appropriate Jira permissions for the operations you intend to perform.
 
 ## Available Operations
 
