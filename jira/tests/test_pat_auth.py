@@ -480,8 +480,9 @@ class TestTokenMasking:
             # Short tokens (<=16 chars) are fully masked
             ("short", "****", "short token"),
             ("1234567890123456", "****", "exactly 16 character token"),
-            # Edge cases
+            # Edge cases - JSKILL-36: Add tests for _mask_token() edge cases
             ("", "(empty)", "empty string token"),
+            (None, "(empty)", "None input token"),
             ("a", "****", "single character token"),
             ("1234567890123456X", "12345678...456X", "17 chars boundary"),
         ],
@@ -491,6 +492,7 @@ class TestTokenMasking:
             "short_token",
             "exactly_16_chars",
             "empty_string",
+            "none_input",
             "single_char",
             "17_chars_boundary",
         ],
