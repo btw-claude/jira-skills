@@ -7,6 +7,12 @@ configuration loading, and HTTP request management.
 Configuration is loaded exclusively from .claude/env file - no fallback
 to environment variables is provided.
 
+Supports two authentication methods:
+1. Basic Auth: Requires JIRA_BASE_URL, JIRA_USER_EMAIL, and JIRA_API_TOKEN
+2. Personal Access Token (PAT): Requires JIRA_BASE_URL and JIRA_PAT
+
+PAT authentication takes precedence if JIRA_PAT is configured.
+
 Example usage:
     from jira_api import JiraClient
 
@@ -104,7 +110,8 @@ def _find_env_file(start_path: Path | None = None) -> Path:
     raise JiraConfigError(
         f"Configuration file .claude/env not found. "
         f"Searched from {start_path} to filesystem root and ~/.claude/env. "
-        f"Please create .claude/env with JIRA_BASE_URL, JIRA_USER_EMAIL, and JIRA_API_TOKEN."
+        f"Please create .claude/env with JIRA_BASE_URL and either JIRA_PAT "
+        f"(for PAT auth) or JIRA_USER_EMAIL and JIRA_API_TOKEN (for Basic Auth)."
     )
 
 
@@ -153,9 +160,16 @@ class JiraClient:
     This client handles authentication and provides convenient methods
     for making API requests. Configuration is loaded from .claude/env.
 
+    Supports two authentication methods:
+    1. PAT (Personal Access Token): If JIRA_PAT is set, uses Bearer token auth
+    2. Basic Auth: Uses JIRA_USER_EMAIL and JIRA_API_TOKEN
+
+    PAT authentication takes precedence if both are configured.
+
     Attributes:
         base_url: The base URL for Jira API requests
         session: The requests Session used for all HTTP calls
+        auth_method: The authentication method being used ("pat" or "basic")
 
     Example:
         client = JiraClient()
@@ -182,13 +196,24 @@ class JiraClient:
     """
 
     API_VERSION = "3"
-    REQUIRED_VARS = ("JIRA_BASE_URL", "JIRA_USER_EMAIL", "JIRA_API_TOKEN")
+    # Base required variable - always needed
+    BASE_REQUIRED_VARS = ("JIRA_BASE_URL",)
+    # Variables required for Basic Auth
+    BASIC_AUTH_VARS = ("JIRA_USER_EMAIL", "JIRA_API_TOKEN")
+    # Variable required for PAT Auth
+    PAT_AUTH_VAR = "JIRA_PAT"
 
     def __init__(self, config_start_path: Path | None = None) -> None:
         """Initialize the Jira client.
 
         Loads configuration from .claude/env and sets up the HTTP session
         with proper authentication headers.
+
+        Supports two authentication methods:
+        1. PAT Auth: Set JIRA_PAT for Bearer token authentication
+        2. Basic Auth: Set JIRA_USER_EMAIL and JIRA_API_TOKEN
+
+        PAT authentication takes precedence if JIRA_PAT is configured.
 
         Args:
             config_start_path: Optional starting path for .claude/env search.
@@ -202,35 +227,61 @@ class JiraClient:
         env_path = _find_env_file(config_start_path)
         config = _load_env_file(env_path)
 
-        # Validate required variables
-        missing_vars = [var for var in self.REQUIRED_VARS if not config.get(var)]
-        if missing_vars:
+        # Validate base required variables
+        missing_base_vars = [var for var in self.BASE_REQUIRED_VARS if not config.get(var)]
+        if missing_base_vars:
             raise JiraConfigError(
-                f"Missing required configuration in {env_path}: {', '.join(missing_vars)}. "
-                f"Please add these variables to your .claude/env file."
+                f"Missing required configuration in {env_path}: {', '.join(missing_base_vars)}. "
+                f"Please add JIRA_BASE_URL to your .claude/env file."
             )
 
-        # Store configuration
+        # Determine authentication method
+        has_pat = bool(config.get(self.PAT_AUTH_VAR))
+        has_basic_auth = all(config.get(var) for var in self.BASIC_AUTH_VARS)
+
+        if not has_pat and not has_basic_auth:
+            raise JiraConfigError(
+                f"Missing authentication configuration in {env_path}. "
+                f"Please configure either:\n"
+                f"  - PAT Auth: Set JIRA_PAT\n"
+                f"  - Basic Auth: Set JIRA_USER_EMAIL and JIRA_API_TOKEN"
+            )
+
+        # Store base configuration
         self._jira_base_url = config["JIRA_BASE_URL"].rstrip("/")
-        self._jira_user_email = config["JIRA_USER_EMAIL"]
-        self._jira_api_token = config["JIRA_API_TOKEN"]
 
         # Construct the API base URL
         self.base_url = f"{self._jira_base_url}/rest/api/{self.API_VERSION}/"
 
-        # Build Basic Auth header (email:api_token base64 encoded)
-        credentials = f"{self._jira_user_email}:{self._jira_api_token}"
-        encoded_credentials = base64.b64encode(credentials.encode("utf-8")).decode("utf-8")
-
-        # Set up the session with authentication
+        # Set up the session
         self.session = requests.Session()
-        self.session.headers.update(
-            {
-                "Authorization": f"Basic {encoded_credentials}",
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            }
-        )
+
+        # Configure authentication based on available credentials
+        # PAT takes precedence if both are configured
+        if has_pat:
+            self.auth_method = "pat"
+            self._jira_pat = config[self.PAT_AUTH_VAR]
+            self.session.headers.update(
+                {
+                    "Authorization": f"Bearer {self._jira_pat}",
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                }
+            )
+        else:
+            self.auth_method = "basic"
+            self._jira_user_email = config["JIRA_USER_EMAIL"]
+            self._jira_api_token = config["JIRA_API_TOKEN"]
+            # Build Basic Auth header (email:api_token base64 encoded)
+            credentials = f"{self._jira_user_email}:{self._jira_api_token}"
+            encoded_credentials = base64.b64encode(credentials.encode("utf-8")).decode("utf-8")
+            self.session.headers.update(
+                {
+                    "Authorization": f"Basic {encoded_credentials}",
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                }
+            )
 
     def _build_url(self, endpoint: str) -> str:
         """Build the full URL for an API endpoint.
