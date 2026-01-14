@@ -2,13 +2,19 @@
 """Validate Jira API authentication configuration.
 
 This script checks that the .claude/env file exists with the required
-configuration and tests that the API token is valid by making a test
-API call.
+configuration and tests that authentication credentials are valid by
+making a test API call.
+
+Supports two authentication methods:
+1. PAT Auth: Requires JIRA_BASE_URL and JIRA_PAT
+2. Basic Auth: Requires JIRA_BASE_URL, JIRA_USER_EMAIL, and JIRA_API_TOKEN
+
+PAT authentication takes precedence if JIRA_PAT is configured.
 
 Exit Codes:
     0: Success - configuration valid and authentication works
     1: Configuration error - missing file or required variables
-    2: Authentication error - PAT is invalid or expired
+    2: Authentication error - credentials are invalid or expired
 
 Usage:
     python scripts/validate_auth.py
@@ -34,38 +40,66 @@ EXIT_CONFIG_ERROR = 1
 EXIT_AUTH_ERROR = 2
 
 
-def validate_configuration() -> tuple[bool, str, dict[str, str] | None]:
+def validate_configuration() -> tuple[bool, str, dict[str, str] | None, str | None]:
     """Validate that configuration file exists and has required variables.
 
+    Supports two authentication methods:
+    1. PAT Auth: Requires JIRA_BASE_URL and JIRA_PAT
+    2. Basic Auth: Requires JIRA_BASE_URL, JIRA_USER_EMAIL, and JIRA_API_TOKEN
+
     Returns:
-        Tuple of (success, message, config_dict or None)
+        Tuple of (success, message, config_dict or None, auth_method or None)
+        auth_method is "pat" or "basic" when successful
     """
     try:
         # Find the .claude/env file
         env_path = _find_env_file()
     except JiraConfigError as e:
-        return (False, f"Missing .claude/env file\n  {e.message}", None)
+        return (False, f"Missing .claude/env file\n  {e.message}", None, None)
 
     # Load and parse the env file
     config = _load_env_file(env_path)
 
-    # Check required variables
-    missing_vars = []
+    # Check base required variable
     if not config.get("JIRA_BASE_URL"):
-        missing_vars.append("JIRA_BASE_URL")
-    if not config.get("JIRA_USER_EMAIL"):
-        missing_vars.append("JIRA_USER_EMAIL")
-    if not config.get("JIRA_API_TOKEN"):
-        missing_vars.append("JIRA_API_TOKEN")
-
-    if missing_vars:
         return (
             False,
-            f"Missing required variables in .claude/env: {', '.join(missing_vars)}",
+            "Missing required variable in .claude/env: JIRA_BASE_URL",
+            None,
             None,
         )
 
-    return (True, str(env_path), config)
+    # Check for authentication credentials
+    # PAT auth takes precedence if configured
+    has_pat = bool(config.get("JIRA_PAT"))
+    has_basic_auth = bool(config.get("JIRA_USER_EMAIL")) and bool(config.get("JIRA_API_TOKEN"))
+
+    if has_pat:
+        return (True, str(env_path), config, "pat")
+    elif has_basic_auth:
+        return (True, str(env_path), config, "basic")
+    else:
+        # Neither auth method is fully configured
+        missing_info = []
+        if not config.get("JIRA_PAT"):
+            missing_info.append("JIRA_PAT (for PAT authentication)")
+        if not config.get("JIRA_USER_EMAIL") or not config.get("JIRA_API_TOKEN"):
+            basic_missing = []
+            if not config.get("JIRA_USER_EMAIL"):
+                basic_missing.append("JIRA_USER_EMAIL")
+            if not config.get("JIRA_API_TOKEN"):
+                basic_missing.append("JIRA_API_TOKEN")
+            missing_info.append(f"{', '.join(basic_missing)} (for Basic authentication)")
+
+        return (
+            False,
+            f"Missing authentication configuration in .claude/env.\n"
+            f"  Please configure one of the following:\n"
+            f"  - PAT Auth: Set JIRA_PAT\n"
+            f"  - Basic Auth: Set JIRA_USER_EMAIL and JIRA_API_TOKEN",
+            None,
+            None,
+        )
 
 
 def test_authentication(client: JiraClient) -> tuple[bool, str, dict | None]:
@@ -83,12 +117,45 @@ def test_authentication(client: JiraClient) -> tuple[bool, str, dict | None]:
         return (True, "Authentication successful", user_info)
 
     except JiraAPIError as e:
+        auth_method = client.auth_method
+        if auth_method == "pat":
+            credential_type = "Personal Access Token (PAT)"
+        else:
+            credential_type = "API token"
+
         if e.status_code == 401:
-            return (False, f"Invalid or expired API token\n  HTTP 401: {e.response_body}", None)
+            return (
+                False,
+                f"Invalid or expired {credential_type}\n"
+                f"  HTTP 401: {e.response_body}\n"
+                f"  Verify your credentials in .claude/env are correct.\n"
+                f"  For PAT auth: Check JIRA_PAT is valid\n"
+                f"  For Basic auth: Check JIRA_USER_EMAIL and JIRA_API_TOKEN",
+                None,
+            )
         elif e.status_code == 403:
-            return (False, f"API token lacks required permissions\n  HTTP 403: {e.response_body}", None)
+            return (
+                False,
+                f"{credential_type} lacks required permissions\n"
+                f"  HTTP 403: {e.response_body}",
+                None,
+            )
         else:
             return (False, f"API request failed\n  HTTP {e.status_code}: {e.response_body}", None)
+
+
+def _mask_token(token: str) -> str:
+    """Mask a token for display, showing first 8 and last 4 chars.
+
+    Args:
+        token: The token to mask
+
+    Returns:
+        Masked token string
+    """
+    if len(token) > 16:
+        return f"{token[:8]}...{token[-4:]}"
+    return "****"
 
 
 def main() -> int:
@@ -101,24 +168,25 @@ def main() -> int:
     print()
 
     # Step 1: Validate configuration
-    config_ok, config_message, config = validate_configuration()
+    config_ok, config_message, config, auth_method = validate_configuration()
 
     if not config_ok:
         print("Configuration ERROR:")
         print(f"  {config_message}")
         return EXIT_CONFIG_ERROR
 
-    # Mask the API token for display (show first 8 and last 4 chars)
-    api_token = config["JIRA_API_TOKEN"]
-    if len(api_token) > 16:
-        masked_token = f"{api_token[:8]}...{api_token[-4:]}"
-    else:
-        masked_token = "****"
-
+    # Display configuration based on auth method
     print("Configuration OK:")
     print(f"  JIRA_BASE_URL: {config['JIRA_BASE_URL']}")
-    print(f"  JIRA_USER_EMAIL: {config['JIRA_USER_EMAIL']}")
-    print(f"  JIRA_API_TOKEN: {masked_token}")
+
+    if auth_method == "pat":
+        print(f"  Authentication: Personal Access Token (PAT)")
+        print(f"  JIRA_PAT: {_mask_token(config['JIRA_PAT'])}")
+    else:  # basic auth
+        print(f"  Authentication: Basic Auth (Email + API Token)")
+        print(f"  JIRA_USER_EMAIL: {config['JIRA_USER_EMAIL']}")
+        print(f"  JIRA_API_TOKEN: {_mask_token(config['JIRA_API_TOKEN'])}")
+
     print(f"  Config file: {config_message}")
     print()
 
