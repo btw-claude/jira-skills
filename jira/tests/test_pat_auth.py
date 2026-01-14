@@ -13,6 +13,7 @@ Test coverage includes:
 - Validation script correctly identifies auth method in use
 
 JSKILL-30: Add tests for PAT authentication
+JSKILL-34: Improve with pytest best practices
 """
 
 from __future__ import annotations
@@ -22,10 +23,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-# Import the modules we're testing
-import sys
-sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
+import pytest
 
+# sys.path manipulation is handled in conftest.py
 from jira_api import (
     JiraClient,
     JiraConfigError,
@@ -245,37 +245,7 @@ class TestValidateAuthScript(unittest.TestCase):
         import shutil
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def test_mask_token_long_token(self):
-        """Test token masking for long tokens."""
-        token = "abcdefghijklmnopqrstuvwxyz"
-        masked = _mask_token(token)
-
-        # Should show first 8 and last 4 characters
-        self.assertEqual(masked, "abcdefgh...wxyz")
-
-    def test_mask_token_short_token(self):
-        """Test token masking for short tokens."""
-        token = "short"
-        masked = _mask_token(token)
-
-        # Short tokens should be fully masked
-        self.assertEqual(masked, "****")
-
-    def test_mask_token_exactly_16_chars(self):
-        """Test token masking for exactly 16 character tokens."""
-        token = "1234567890123456"  # Exactly 16 chars
-        masked = _mask_token(token)
-
-        # 16 chars is not > 16, so should be masked
-        self.assertEqual(masked, "****")
-
-    def test_mask_token_17_chars(self):
-        """Test token masking for 17 character tokens."""
-        token = "12345678901234567"  # 17 chars
-        masked = _mask_token(token)
-
-        # 17 chars is > 16, so should show partial
-        self.assertEqual(masked, "12345678...4567")
+    # Token masking tests have been moved to parametrized tests below
 
     @patch('validate_auth._find_env_file')
     @patch('validate_auth._load_env_file')
@@ -495,6 +465,89 @@ class TestAuthMethodIdentification(unittest.TestCase):
         client = JiraClient(config_start_path=Path(self.temp_dir))
 
         self.assertEqual(client.auth_method, "basic")
+
+
+# JSKILL-34: Parametrized token masking tests
+class TestTokenMasking:
+    """Test token masking functionality using pytest parametrize."""
+
+    @pytest.mark.parametrize(
+        "token,expected,description",
+        [
+            # Long tokens (>16 chars) show first 8 and last 4
+            ("abcdefghijklmnopqrstuvwxyz", "abcdefgh...wxyz", "long token"),
+            ("12345678901234567", "12345678...4567", "17 character token"),
+            # Short tokens (<=16 chars) are fully masked
+            ("short", "****", "short token"),
+            ("1234567890123456", "****", "exactly 16 character token"),
+            # Edge cases
+            ("", "(empty)", "empty string token"),
+            ("a", "****", "single character token"),
+            ("1234567890123456X", "12345678...456X", "17 chars boundary"),
+        ],
+        ids=[
+            "long_token",
+            "17_chars",
+            "short_token",
+            "exactly_16_chars",
+            "empty_string",
+            "single_char",
+            "17_chars_boundary",
+        ],
+    )
+    def test_mask_token(self, token, expected, description):
+        """Test token masking for various token lengths.
+
+        Tokens longer than 16 characters show first 8 and last 4 characters.
+        Shorter tokens are fully masked with ****.
+        """
+        result = _mask_token(token)
+        assert result == expected, f"Failed for {description}: {token!r}"
+
+
+# JSKILL-34: Test for empty string PAT token error handling
+class TestEmptyPATToken(unittest.TestCase):
+    """Test error handling for empty PAT tokens."""
+
+    def setUp(self):
+        """Create a temporary directory for test env files."""
+        self.temp_dir = tempfile.mkdtemp()
+        self.claude_dir = Path(self.temp_dir) / ".claude"
+        self.claude_dir.mkdir()
+        self.env_file = self.claude_dir / "env"
+
+    def tearDown(self):
+        """Clean up temporary files."""
+        import shutil
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def test_empty_pat_token_raises_error(self):
+        """Test that empty string PAT token raises appropriate error."""
+        self.env_file.write_text(
+            "JIRA_BASE_URL=https://example.atlassian.net\n"
+            "JIRA_PAT=\n"
+        )
+
+        with self.assertRaises(JiraConfigError) as context:
+            JiraClient(config_start_path=Path(self.temp_dir))
+
+        error_message = str(context.exception)
+        # Should indicate authentication configuration is missing/invalid
+        self.assertIn("PAT Auth", error_message)
+
+    def test_whitespace_only_pat_token_raises_error(self):
+        """Test that whitespace-only PAT token raises appropriate error."""
+        self.env_file.write_text(
+            "JIRA_BASE_URL=https://example.atlassian.net\n"
+            "JIRA_PAT=   \n"
+        )
+
+        with self.assertRaises(JiraConfigError) as context:
+            JiraClient(config_start_path=Path(self.temp_dir))
+
+        error_message = str(context.exception)
+        # Should indicate authentication configuration is missing/invalid
+        self.assertIn("PAT Auth", error_message)
 
 
 if __name__ == "__main__":
