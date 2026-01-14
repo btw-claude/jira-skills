@@ -2,7 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
@@ -22,6 +23,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Error messages now mention both authentication options
 - Configuration validation supports either PAT or Basic Auth
 
-### Backward Compatibility
-- Existing Basic Auth configurations continue to work without modification
-- No changes required for users currently using email + API token
+> **Note:** Existing Basic Auth configurations continue to work without modification.
+> No changes required for users currently using email + API token.
