@@ -21,6 +21,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Optional
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -503,7 +504,7 @@ class TestTokenMasking:
             "17_chars_boundary",
         ],
     )
-    def test_mask_token(self, token: str | None, expected: str) -> None:
+    def test_mask_token(self, token: Optional[str], expected: str) -> None:
         """Test token masking for various token lengths.
 
         Args:
