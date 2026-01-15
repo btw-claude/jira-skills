@@ -468,10 +468,14 @@ class TestAuthMethodIdentification(unittest.TestCase):
 
 
 # JSKILL-34: Parametrized token masking tests
+# JSKILL-39: Added explicit type hints for token parameter
 class TestTokenMasking:
     """Test token masking functionality using pytest parametrize."""
 
     @pytest.mark.parametrize(
+        # Type hints: token is Optional[str], expected is str
+        # The token parameter accepts both str and None values to test
+        # that _mask_token() handles None gracefully (returns "(empty)")
         "token,expected",
         [
             # Long tokens (>16 chars) show first 8 and last 4
@@ -481,6 +485,8 @@ class TestTokenMasking:
             ("short", "****"),
             ("1234567890123456", "****"),
             # Edge cases - JSKILL-36: Add tests for _mask_token() edge cases
+            # Note: None is explicitly handled by _mask_token() to support
+            # cases where token values may be missing from configuration
             ("", "(empty)"),
             (None, "(empty)"),
             ("a", "****"),
@@ -497,8 +503,13 @@ class TestTokenMasking:
             "17_chars_boundary",
         ],
     )
-    def test_mask_token(self, token, expected):
+    def test_mask_token(self, token: str | None, expected: str) -> None:
         """Test token masking for various token lengths.
+
+        Args:
+            token: The token to mask. Can be str or None (Optional[str]).
+                   None is explicitly handled to support missing configuration values.
+            expected: The expected masked output string.
 
         Tokens longer than 16 characters show first 8 and last 4 characters.
         Shorter tokens are fully masked with ****.
