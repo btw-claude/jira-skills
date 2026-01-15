@@ -472,19 +472,19 @@ class TestTokenMasking:
     """Test token masking functionality using pytest parametrize."""
 
     @pytest.mark.parametrize(
-        "token,expected,description",
+        "token,expected",
         [
             # Long tokens (>16 chars) show first 8 and last 4
-            ("abcdefghijklmnopqrstuvwxyz", "abcdefgh...wxyz", "long token"),
-            ("12345678901234567", "12345678...4567", "17 character token"),
+            ("abcdefghijklmnopqrstuvwxyz", "abcdefgh...wxyz"),
+            ("12345678901234567", "12345678...4567"),
             # Short tokens (<=16 chars) are fully masked
-            ("short", "****", "short token"),
-            ("1234567890123456", "****", "exactly 16 character token"),
+            ("short", "****"),
+            ("1234567890123456", "****"),
             # Edge cases - JSKILL-36: Add tests for _mask_token() edge cases
-            ("", "(empty)", "empty string token"),
-            (None, "(empty)", "None input token"),
-            ("a", "****", "single character token"),
-            ("1234567890123456X", "12345678...456X", "17 chars boundary"),
+            ("", "(empty)"),
+            (None, "(empty)"),
+            ("a", "****"),
+            ("1234567890123456X", "12345678...456X"),
         ],
         ids=[
             "long_token",
@@ -497,14 +497,14 @@ class TestTokenMasking:
             "17_chars_boundary",
         ],
     )
-    def test_mask_token(self, token, expected, description):
+    def test_mask_token(self, token, expected):
         """Test token masking for various token lengths.
 
         Tokens longer than 16 characters show first 8 and last 4 characters.
         Shorter tokens are fully masked with ****.
         """
         result = _mask_token(token)
-        assert result == expected, f"Failed for {description}: {token!r}"
+        assert result == expected
 
 
 # JSKILL-34: Test for empty string PAT token error handling
