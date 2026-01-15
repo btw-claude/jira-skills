@@ -28,7 +28,12 @@ JIRA_BASE_URL=https://your-jira-server.com
 JIRA_PAT=your-personal-access-token
 ```
 
-Generate a PAT by navigating to your profile (Avatar > Profile > Personal Access Tokens) or access `{your-jira-url}/secure/ViewProfile.jspa` and select "Personal Access Tokens" from the left menu. See: https://confluence.atlassian.com/enterprise/using-personal-access-tokens-1026032365.html
+Generate a PAT using one of these methods:
+
+- **Via UI navigation**: Click your Avatar > Profile > Personal Access Tokens
+- **Via direct URL**: Go to `{your-jira-url}/secure/ViewProfile.jspa` and select "Personal Access Tokens" from the left menu
+
+For detailed instructions, see the [Atlassian PAT documentation](https://confluence.atlassian.com/enterprise/using-personal-access-tokens-1026032365.html).
 
 ### When to Use Each Method
 
