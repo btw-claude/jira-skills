@@ -23,9 +23,11 @@ Retrieve all available issue link types in the Jira instance.
 #### Example
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/manage_issue_links.py
+{
   "action": "get_types"
-}' | python scripts/manage_issue_links.py
+}
+EOF
 ```
 
 #### Output
@@ -58,12 +60,14 @@ Link direction: The outward issue performs the action on the inward issue. For e
 #### Example
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/manage_issue_links.py
+{
   "action": "create",
   "link_type": "Blocks",
   "inward_issue_key": "PROJ-1",
   "outward_issue_key": "PROJ-2"
-}' | python scripts/manage_issue_links.py
+}
+EOF
 ```
 
 This creates a link where PROJ-2 blocks PROJ-1.
@@ -90,10 +94,12 @@ Retrieve details of a specific issue link by its ID.
 #### Example
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/manage_issue_links.py
+{
   "action": "get",
   "link_id": "10001"
-}' | python scripts/manage_issue_links.py
+}
+EOF
 ```
 
 #### Output
@@ -132,11 +138,15 @@ Delete an issue link.
 #### Example
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/manage_issue_links.py
+{
   "action": "delete",
   "link_id": "10001"
-}' | python scripts/manage_issue_links.py
+}
+EOF
 ```
+
+**Note:** Always use heredoc syntax (`cat << 'EOF'`) instead of `echo` to avoid JSON parsing errors with special characters.
 
 #### Output
 

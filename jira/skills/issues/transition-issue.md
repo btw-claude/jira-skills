@@ -26,10 +26,12 @@ JSON object on stdin:
 #### Example
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/transition_issue.py
+{
   "action": "get_transitions",
   "issue_key": "PROJ-123"
-}' | python scripts/transition_issue.py
+}
+EOF
 ```
 
 #### Output
@@ -64,23 +66,42 @@ JSON object on stdin:
 Transition without comment:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/transition_issue.py
+{
   "action": "transition",
   "issue_key": "PROJ-123",
   "transition_id": "31"
-}' | python scripts/transition_issue.py
+}
+EOF
 ```
 
 Transition with comment:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/transition_issue.py
+{
   "action": "transition",
   "issue_key": "PROJ-123",
   "transition_id": "31",
   "comment": "Completed code review and testing"
-}' | python scripts/transition_issue.py
+}
+EOF
 ```
+
+Transition with multi-line comment:
+
+```bash
+cat << 'EOF' | python scripts/transition_issue.py
+{
+  "action": "transition",
+  "issue_key": "PROJ-123",
+  "transition_id": "31",
+  "comment": "Closing this issue:\n\n- All tests passing\n- Code reviewed\n- Documentation updated"
+}
+EOF
+```
+
+**Note:** Always use heredoc syntax (`cat << 'EOF'`) instead of `echo` to avoid JSON parsing errors with special characters or newlines in comments.
 
 #### Output
 

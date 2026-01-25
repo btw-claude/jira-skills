@@ -44,26 +44,34 @@ Request additional data in the response:
 Get basic issue details:
 
 ```bash
-echo '{"issue_key": "PROJ-123"}' | python scripts/get_issue.py
+cat << 'EOF' | python scripts/get_issue.py
+{"issue_key": "PROJ-123"}
+EOF
 ```
 
 Get specific fields only:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/get_issue.py
+{
   "issue_key": "PROJ-123",
   "fields": "summary,status,assignee,priority"
-}' | python scripts/get_issue.py
+}
+EOF
 ```
 
 Get issue with changelog:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/get_issue.py
+{
   "issue_key": "PROJ-123",
   "expand": "changelog,renderedFields"
-}' | python scripts/get_issue.py
+}
+EOF
 ```
+
+**Note:** Always use heredoc syntax (`cat << 'EOF'`) instead of `echo` to avoid JSON parsing errors with special characters.
 
 ## Output
 

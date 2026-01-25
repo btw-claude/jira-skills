@@ -28,26 +28,45 @@ JSON object on stdin with the following parameters:
 Create a basic task:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/create_issue.py
+{
   "project_key": "PROJ",
   "summary": "Implement user authentication",
   "issue_type": "Task",
   "description": "Add OAuth2 authentication flow",
   "priority": "High",
   "labels": ["backend", "security"]
-}' | python scripts/create_issue.py
+}
+EOF
+```
+
+Create an issue with multi-line description:
+
+```bash
+cat << 'EOF' | python scripts/create_issue.py
+{
+  "project_key": "PROJ",
+  "summary": "Update API endpoints",
+  "issue_type": "Task",
+  "description": "Update the following endpoints:\n\n- GET /users\n- POST /users\n- DELETE /users/:id\n\nEnsure proper error handling."
+}
+EOF
 ```
 
 Create a sub-task:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/create_issue.py
+{
   "project_key": "PROJ",
   "summary": "Write unit tests for auth module",
   "issue_type": "Sub-task",
   "parent_key": "PROJ-123"
-}' | python scripts/create_issue.py
+}
+EOF
 ```
+
+**Note:** Always use heredoc syntax (`cat << 'EOF'`) instead of `echo` to avoid JSON parsing errors with special characters or newlines in descriptions.
 
 ## Output
 

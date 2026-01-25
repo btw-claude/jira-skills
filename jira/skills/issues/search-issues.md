@@ -103,63 +103,79 @@ Add `ORDER BY` clause for sorting:
 Search open issues in a project:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/search_issues.py
+{
   "jql": "project = PROJ AND status = Open"
-}' | python scripts/search_issues.py
+}
+EOF
 ```
 
 Find issues assigned to current user:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/search_issues.py
+{
   "jql": "assignee = currentUser() AND status != Done",
   "fields": "summary,status,priority"
-}' | python scripts/search_issues.py
+}
+EOF
 ```
 
 Find recently created issues:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/search_issues.py
+{
   "jql": "created >= -7d ORDER BY created DESC",
   "max_results": 20
-}' | python scripts/search_issues.py
+}
+EOF
 ```
 
 Find urgent issues:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/search_issues.py
+{
   "jql": "labels IN (urgent, critical) AND status != Done"
-}' | python scripts/search_issues.py
+}
+EOF
 ```
 
 Text search across summary and description:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/search_issues.py
+{
   "jql": "summary ~ \"login\" OR description ~ \"login\""
-}' | python scripts/search_issues.py
+}
+EOF
 ```
 
 Paginated results:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/search_issues.py
+{
   "jql": "project = PROJ",
   "max_results": 25,
   "start_at": 25
-}' | python scripts/search_issues.py
+}
+EOF
 ```
 
 Get issues with changelog:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/search_issues.py
+{
   "jql": "project = PROJ AND updated >= -1d",
   "expand": "changelog"
-}' | python scripts/search_issues.py
+}
+EOF
 ```
+
+**Note:** Always use heredoc syntax (`cat << 'EOF'`) instead of `echo` to avoid JSON parsing errors with special characters in JQL queries.
 
 ## Output
 

@@ -60,43 +60,65 @@ Delete a comment.
 List comments on an issue:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/manage_comments.py
+{
   "action": "list",
   "issue_key": "PROJ-123",
   "max_results": 10
-}' | python scripts/manage_comments.py
+}
+EOF
 ```
 
 Add a comment:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/manage_comments.py
+{
   "action": "add",
   "issue_key": "PROJ-123",
   "body": "This issue is now in code review."
-}' | python scripts/manage_comments.py
+}
+EOF
+```
+
+Add a multi-line comment:
+
+```bash
+cat << 'EOF' | python scripts/manage_comments.py
+{
+  "action": "add",
+  "issue_key": "PROJ-123",
+  "body": "Code review findings:\n\n- Missing error handling in auth module\n- Tests needed for edge cases\n\nPlease address before merging."
+}
+EOF
 ```
 
 Update a comment:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/manage_comments.py
+{
   "action": "update",
   "issue_key": "PROJ-123",
   "comment_id": "10001",
   "body": "Updated: Code review complete."
-}' | python scripts/manage_comments.py
+}
+EOF
 ```
 
 Delete a comment:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/manage_comments.py
+{
   "action": "delete",
   "issue_key": "PROJ-123",
   "comment_id": "10001"
-}' | python scripts/manage_comments.py
+}
+EOF
 ```
+
+**Note:** Always use heredoc syntax (`cat << 'EOF'`) instead of `echo` to avoid JSON parsing errors with special characters or newlines.
 
 ## Output
 

@@ -30,10 +30,12 @@ Retrieve a single user by their account ID.
 | `account_id` | Yes | The user's Jira account ID |
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/find_users.py
+{
   "action": "get",
   "account_id": "5b10ac8d82e05b22cc7d4ef5"
-}' | python scripts/find_users.py
+}
+EOF
 ```
 
 ## Action: search
@@ -48,21 +50,25 @@ Search for users by name or email.
 | `start_at` | No | Pagination offset |
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/find_users.py
+{
   "action": "search",
   "query": "john"
-}' | python scripts/find_users.py
+}
+EOF
 ```
 
 With pagination:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/find_users.py
+{
   "action": "search",
   "query": "dev",
   "max_results": 10,
   "start_at": 0
-}' | python scripts/find_users.py
+}
+EOF
 ```
 
 ## Action: assignable
@@ -82,31 +88,39 @@ Find users who can be assigned to issues in a project or specific issue.
 By project:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/find_users.py
+{
   "action": "assignable",
   "project_key": "PROJ"
-}' | python scripts/find_users.py
+}
+EOF
 ```
 
 By issue:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/find_users.py
+{
   "action": "assignable",
   "issue_key": "PROJ-123"
-}' | python scripts/find_users.py
+}
+EOF
 ```
 
 With filter:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/find_users.py
+{
   "action": "assignable",
   "project_key": "PROJ",
   "query": "john",
   "max_results": 5
-}' | python scripts/find_users.py
+}
+EOF
 ```
+
+**Note:** Always use heredoc syntax (`cat << 'EOF'`) instead of `echo` to avoid JSON parsing errors with special characters.
 
 ## Output
 

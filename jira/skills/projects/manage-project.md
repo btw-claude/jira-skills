@@ -80,25 +80,30 @@ Delete a project.
 List all projects:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/manage_project.py
+{
   "action": "list",
   "max_results": 10
-}' | python scripts/manage_project.py
+}
+EOF
 ```
 
 Get a project:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/manage_project.py
+{
   "action": "get",
   "project_key": "PROJ"
-}' | python scripts/manage_project.py
+}
+EOF
 ```
 
 Create a Kanban project:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/manage_project.py
+{
   "action": "create",
   "key": "NEWPROJ",
   "name": "New Project",
@@ -106,38 +111,47 @@ echo '{
   "project_template_key": "com.pyxis.greenhopper.jira:gh-simplified-kanban-classic",
   "lead_account_id": "5b10a2844c20165700ede21g",
   "description": "A new software project"
-}' | python scripts/manage_project.py
+}
+EOF
 ```
 
 Update a project:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/manage_project.py
+{
   "action": "update",
   "project_key": "PROJ",
   "name": "Updated Project Name",
   "description": "Updated description"
-}' | python scripts/manage_project.py
+}
+EOF
 ```
 
 Delete a project (with undo):
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/manage_project.py
+{
   "action": "delete",
   "project_key": "PROJ"
-}' | python scripts/manage_project.py
+}
+EOF
 ```
 
 Permanently delete a project:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/manage_project.py
+{
   "action": "delete",
   "project_key": "PROJ",
   "enable_undo": false
-}' | python scripts/manage_project.py
+}
+EOF
 ```
+
+**Note:** Always use heredoc syntax (`cat << 'EOF'`) instead of `echo` to avoid JSON parsing errors with special characters.
 
 ## Output
 

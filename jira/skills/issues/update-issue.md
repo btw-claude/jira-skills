@@ -51,44 +51,66 @@ Delete an issue.
 Update issue fields:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/update_issue.py
+{
   "action": "update",
   "issue_key": "PROJ-123",
   "summary": "Updated title",
   "priority": "High",
   "labels": ["urgent", "backend"]
-}' | python scripts/update_issue.py
+}
+EOF
+```
+
+Update issue with multi-line description:
+
+```bash
+cat << 'EOF' | python scripts/update_issue.py
+{
+  "action": "update",
+  "issue_key": "PROJ-123",
+  "description": "Updated requirements:\n\n1. Add validation\n2. Handle edge cases\n3. Write tests"
+}
+EOF
 ```
 
 Assign an issue:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/update_issue.py
+{
   "action": "assign",
   "issue_key": "PROJ-123",
   "account_id": "5b10a2844c20165700ede21g"
-}' | python scripts/update_issue.py
+}
+EOF
 ```
 
 Unassign an issue:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/update_issue.py
+{
   "action": "assign",
   "issue_key": "PROJ-123",
   "account_id": null
-}' | python scripts/update_issue.py
+}
+EOF
 ```
 
 Delete an issue with subtasks:
 
 ```bash
-echo '{
+cat << 'EOF' | python scripts/update_issue.py
+{
   "action": "delete",
   "issue_key": "PROJ-123",
   "delete_subtasks": true
-}' | python scripts/update_issue.py
+}
+EOF
 ```
+
+**Note:** Always use heredoc syntax (`cat << 'EOF'`) instead of `echo` to avoid JSON parsing errors with special characters or newlines.
 
 ## Output
 
